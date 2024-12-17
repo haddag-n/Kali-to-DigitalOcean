@@ -32,7 +32,7 @@ jobs:
 
       - name: Wait for VM to boot
         run: |
-          sleep 90
+          sleep 120
 
       - name: Check VM Status
         run: |
@@ -45,6 +45,10 @@ jobs:
       - name: Enable Libguestfs Debugging
         run: |
           export LIBGUESTFS_DEBUG=1 LIBGUESTFS_TRACE=1
+
+      - name: Run libguestfs-test-tool
+        run: |
+          sudo libguestfs-test-tool
 
       - name: Install Kali Linux
         run: |
