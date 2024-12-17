@@ -14,7 +14,8 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils virt-manager
+          sudo apt install -y qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils virt-manager libguestfs-tools
+
 
       - name: Download Kali mini.iso
         run: |
@@ -28,11 +29,19 @@ jobs:
 
       - name: Create Virtual Machine
         run: |
-          sudo virt-install --name kali-vm --memory 1024 --vcpus 1 --disk path=/var/lib/libvirt/images/kali.img,size=20 --import --cdrom /var/lib/libvirt/images/kali-linux-mini.iso --os-variant debian10 --noautoconsole
+          sudo virt-install --name kali-vm --memory 2048 --vcpus 2 --disk path=/var/lib/libvirt/images/kali.img,size=20 --import --cdrom /var/lib/libvirt/images/kali-linux-mini.iso --os-variant debian10 --noautoconsole
 
       - name: Wait for VM to boot
         run: |
-          sleep 300
+          sleep 120
+
+      - name: Check VM Status
+        run: |
+          sudo virsh list --all
+
+      - name: Check Libvirt Logs
+        run: |
+          sudo journalctl -u libvirtd
 
       - name: Install Kali Linux
         run: |
