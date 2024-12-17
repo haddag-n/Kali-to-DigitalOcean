@@ -20,9 +20,15 @@ jobs:
         run: |
           wget http://http.kali.org/kali/dists/kali-rolling/main/installer-amd64/current/images/netboot/mini.iso -O kali-linux-mini.iso
 
+      - name: Move ISO to libvirt images directory
+        run: |
+          sudo mv kali-linux-mini.iso /var/lib/libvirt/images/
+          sudo chown libvirt-qemu:libvirt-qemu /var/lib/libvirt/images/kali-linux-mini.iso
+          sudo chmod 644 /var/lib/libvirt/images/kali-linux-mini.iso
+
       - name: Create Virtual Machine
         run: |
-          sudo virt-install --name kali-vm --memory 2048 --vcpus 2 --disk path=/var/lib/libvirt/images/kali.img,size=20 --import --cdrom kali-linux-mini.iso --os-variant debian10
+          sudo virt-install --name kali-vm --memory 2048 --vcpus 2 --disk path=/var/lib/libvirt/images/kali.img,size=20 --import --cdrom /var/lib/libvirt/images/kali-linux-mini.iso --os-variant debian10
 
       - name: Wait for VM to boot
         run: |
