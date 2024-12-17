@@ -16,7 +16,6 @@ jobs:
           sudo apt update
           sudo apt install -y qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils virt-manager libguestfs-tools
 
-
       - name: Download Kali mini.iso
         run: |
           wget http://http.kali.org/kali/dists/kali-rolling/main/installer-amd64/current/images/netboot/mini.iso -O kali-linux-mini.iso
@@ -33,7 +32,7 @@ jobs:
 
       - name: Wait for VM to boot
         run: |
-          sleep 120
+          sleep 90
 
       - name: Check VM Status
         run: |
@@ -42,6 +41,10 @@ jobs:
       - name: Check Libvirt Logs
         run: |
           sudo journalctl -u libvirtd
+
+      - name: Enable Libguestfs Debugging
+        run: |
+          export LIBGUESTFS_DEBUG=1 LIBGUESTFS_TRACE=1
 
       - name: Install Kali Linux
         run: |
