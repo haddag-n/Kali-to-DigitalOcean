@@ -28,11 +28,11 @@ jobs:
 
       - name: Create Virtual Machine
         run: |
-          sudo virt-install --name kali-vm --memory 2048 --vcpus 2 --disk path=/var/lib/libvirt/images/kali.img,size=20 --import --cdrom /var/lib/libvirt/images/kali-linux-mini.iso --os-variant debian10
+          sudo virt-install --name kali-vm --memory 1024 --vcpus 1 --disk path=/var/lib/libvirt/images/kali.img,size=20 --import --cdrom /var/lib/libvirt/images/kali-linux-mini.iso --os-variant debian10 --noautoconsole
 
       - name: Wait for VM to boot
         run: |
-          sleep 120
+          sleep 300
 
       - name: Install Kali Linux
         run: |
