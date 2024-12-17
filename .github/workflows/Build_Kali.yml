@@ -1,0 +1,96 @@
+name: Kali Linux to DigitalOcean
+
+on:
+  workflow_dispatch:
+
+jobs:
+  kali-linux-to-digitalocean:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils virt-manager
+
+      - name: Download Kali mini.iso
+        run: |
+          wget http://http.kali.org/kali/dists/kali-rolling/main/installer-amd64/current/images/netboot/mini.iso -O kali-linux-mini.iso
+
+      - name: Create Virtual Machine
+        run: |
+          virt-install --name kali-vm --memory 2048 --vcpus 2 --disk path=/var/lib/libvirt/images/kali.img,size=20 --import --cdrom kali-linux-mini.iso --os-type linux --os-variant debian10
+
+      - name: Wait for VM to boot
+        run: |
+          sleep 120
+
+      - name: Install Kali Linux
+        run: |
+          virt-customize -a /var/lib/libvirt/images/kali.img --install cloud-init,openssh-server --run-command 'echo "datasource_list: [ ConfigDrive, DigitalOcean, NoCloud, None ]" > /etc/cloud/cloud.cfg.d/99_digitalocean.cfg' --run-command 'systemctl enable cloud-init --now' --run-command 'systemctl enable ssh.service --now' --run-command 'passwd -d root' --run-command 'mkdir -p /root/.ssh/' --run-command 'apt autoremove -y' --run-command 'apt autoclean -y' --run-command 'rm -rf /var/log/*' --run-command 'history -c'
+
+      - name: Shutdown VM
+        run: |
+          virsh shutdown kali-vm
+
+      - name: Convert VM image to qcow2
+        run: |
+          qemu-img convert -f qcow2 -O qcow2 /var/lib/libvirt/images/kali.img kali.qcow2
+
+      - name: Compress Image to gzip
+        run: |
+          gzip -c kali.qcow2 > kali.qcow2.gz
+
+      - name: Versioning
+        id: get_version
+        run: |
+          if [ ! -f version.txt ]; then
+            NEW_VERSION="v1.0.0"  # Set NEW_VERSION for the first run
+            echo "$NEW_VERSION" > version.txt
+          else
+            VERSION=$(cat version.txt)
+            MAJOR_VERSION=$(echo $VERSION | cut -d. -f1 | cut -c2-)
+            NEXT_MAJOR_VERSION=$((MAJOR_VERSION + 1))
+            NEW_VERSION="v$NEXT_MAJOR_VERSION.0.0"
+            echo "$NEW_VERSION" > version.txt
+          fi
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+
+      - name: Commit new version
+        run: |
+          git config user.name "haddag-n"
+          git config user.email "nhaddag@opendz.tech"
+          git add version.txt
+          git commit -m "Update version to ${{ env.NEW_VERSION }} - Kali Linux"
+          git push
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.NEW_VERSION }}
+          files: ./kali.qcow2.gz
+          draft: false
+          prerelease: false
+
+      - name: Upload to DigitalOcean
+        env:
+          DIGITALOCEAN_ACCESS_TOKEN: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+          REGION: ${{ secrets.REGION }}
+        run: |
+          curl -X POST "https://api.digitalocean.com/v2/images" \
+          -H "Authorization: Bearer $DIGITALOCEAN_ACCESS_TOKEN" \
+          -H "Content-Type: application/json" \
+          -d "{
+                \"name\": \"Kali Linux from GitHub Actions\",
+                \"url\": \"https://github.com/${{ github.repository }}/releases/download/${{ env.NEW_VERSION }}/kali.qcow2.gz\",
+                \"distribution\": \"Debian\",
+                \"region\": \"${{ env.REGION }}\",
+                \"description\": \"Kali Linux\",
+                \"tags\": [\"kali\"]
+              }"
