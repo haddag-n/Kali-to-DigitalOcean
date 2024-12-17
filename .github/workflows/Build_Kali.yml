@@ -1,4 +1,4 @@
-name: Kali Linux to DigitalOcean
+name: Build Kali Linux to DigitalOcean
 
 on:
   workflow_dispatch:
@@ -22,7 +22,7 @@ jobs:
 
       - name: Create Virtual Machine
         run: |
-          virt-install --name kali-vm --memory 2048 --vcpus 2 --disk path=/var/lib/libvirt/images/kali.img,size=20 --import --cdrom kali-linux-mini.iso --os-type linux --os-variant debian10
+          sudo virt-install --name kali-vm --memory 2048 --vcpus 2 --disk path=/var/lib/libvirt/images/kali.img,size=20 --import --cdrom kali-linux-mini.iso --os-variant debian10
 
       - name: Wait for VM to boot
         run: |
@@ -30,15 +30,15 @@ jobs:
 
       - name: Install Kali Linux
         run: |
-          virt-customize -a /var/lib/libvirt/images/kali.img --install cloud-init,openssh-server --run-command 'echo "datasource_list: [ ConfigDrive, DigitalOcean, NoCloud, None ]" > /etc/cloud/cloud.cfg.d/99_digitalocean.cfg' --run-command 'systemctl enable cloud-init --now' --run-command 'systemctl enable ssh.service --now' --run-command 'passwd -d root' --run-command 'mkdir -p /root/.ssh/' --run-command 'apt autoremove -y' --run-command 'apt autoclean -y' --run-command 'rm -rf /var/log/*' --run-command 'history -c'
+          sudo virt-customize -a /var/lib/libvirt/images/kali.img --install cloud-init,openssh-server --run-command 'echo "datasource_list: [ ConfigDrive, DigitalOcean, NoCloud, None ]" > /etc/cloud/cloud.cfg.d/99_digitalocean.cfg' --run-command 'systemctl enable cloud-init --now' --run-command 'systemctl enable ssh.service --now' --run-command 'passwd -d root' --run-command 'mkdir -p /root/.ssh/' --run-command 'apt autoremove -y' --run-command 'apt autoclean -y' --run-command 'rm -rf /var/log/*' --run-command 'history -c'
 
       - name: Shutdown VM
         run: |
-          virsh shutdown kali-vm
+          sudo virsh shutdown kali-vm
 
       - name: Convert VM image to qcow2
         run: |
-          qemu-img convert -f qcow2 -O qcow2 /var/lib/libvirt/images/kali.img kali.qcow2
+          sudo qemu-img convert -f qcow2 -O qcow2 /var/lib/libvirt/images/kali.img kali.qcow2
 
       - name: Compress Image to gzip
         run: |
